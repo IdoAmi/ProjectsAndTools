@@ -1,23 +1,35 @@
 
-
-import requests
 import os
 
+def scan_file_path(path):
 
-def check_file_with_virustotal(file_path, api_key):
-    url = 'https://www.virustotal.com/api/v3/files'
-    with open(file_path, 'rb') as file:
-        files = {'file' : file}
-        headers = { 'apikey' : api_key}
+    try:
+        print(f"Scanning file path: {path}")
+        for root, dirs, files in os.walk(path):
+            print(f"\nCurrent file path: {root}")
 
-        response = requests.post(url, headers=headers, files=files)
-        if response.status_code == 200:
-            return response.json()
-        else:
-             print(f"Failed to upload file. Status code: {response.status_code}")
-             
+           
+            if dirs:
+                print("Sub File Paths:")
+                for d in dirs:
+                    print(f"  - {os.path.join(root, d)}")
+
+            
+            if files:
+                print("Files:")
+                for f in files:
+                    print(f"  - {os.path.join(root, f)}")
+
+    except Exception as e:
+        print(f"Error scanning file path {path}: {e}")
 
 
-api_key = "My Api Key"
-file_path = "File/path"
-result = check_file_with_virustotal(file_path, api_key)
+while True:
+    file_path = input("Enter the file path to scan: ")
+    if os.path.exists(file_path):
+        scan_file_path(file_path)
+    else:
+        print("Invalid file path. Please check and try again.")
+
+
+
