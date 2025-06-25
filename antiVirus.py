@@ -22,7 +22,7 @@ def calculate_file_hash(file_path):
         return None
 
 def check_file_with_virustotal(file_path, api_key):
-    """Scan file with VirusTotal API"""
+    """Scan file with VirusTotal API and return results"""
     url = 'https://www.virustotal.com/api/v3/files'
     try:
         with open(file_path, 'rb') as file:
@@ -31,8 +31,44 @@ def check_file_with_virustotal(file_path, api_key):
             response = requests.post(url, headers=headers, files=files)
             
             if response.status_code == 200:
-                print(f"File {file_path} scanned successfully on VirusTotal.")
-                return response.json()
+                result = response.json()
+                print(f"\nFile {file_path} scanned successfully on VirusTotal.")
+                
+                # Get the analysis ID to retrieve the report
+                analysis_id = result.get('data', {}).get('id')
+                if analysis_id:
+                    # Wait a moment for analysis to complete (VirusTotal needs some time)
+                    time.sleep(15)
+                    
+                    # Get the analysis report
+                    report_url = f'https://www.virustotal.com/api/v3/analyses/{analysis_id}'
+                    report_response = requests.get(report_url, headers=headers)
+                    
+                    if report_response.status_code == 200:
+                        report = report_response.json()
+                        stats = report.get('data', {}).get('attributes', {}).get('stats', {})
+                        malicious = stats.get('malicious', 0)
+                        suspicious = stats.get('suspicious', 0)
+                        undetected = stats.get('undetected', 0)
+                        harmless = stats.get('harmless', 0)
+                        
+                        print("\nVirusTotal Scan Results:")
+                        print(f"Malicious: {malicious}")
+                        print(f"Suspicious: {suspicious}")
+                        print(f"Undetected: {undetected}")
+                        print(f"Harmless: {harmless}")
+                        
+                        if malicious > 0:
+                            print("\n⚠️ WARNING: This file was flagged as malicious by one or more engines!")
+                        elif suspicious > 0:
+                            print("\n⚠️ CAUTION: This file was flagged as suspicious by one or more engines!")
+                        else:
+                            print("\n✅ No malicious indicators found.")
+                            
+                        return report
+                    else:
+                        print(f"Failed to get report for {file_path}. Status code: {report_response.status_code}")
+                return None
             else:
                 print(f"Failed to upload file {file_path}. Status code: {response.status_code}")
                 return None
